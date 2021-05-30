@@ -22,7 +22,7 @@ title: k1R4's blog
 #email: 
 description: >- # this means to ignore newlines until "baseurl:"
   Welcome to k1R4's blog!
-#baseurl: "/" # the subpath of your site, e.g. /blog
+baseurl: "/" # the subpath of your site, e.g. /blog
 url: "https://k1r4.github.io" # the base hostname & protocol for your site, e.g. http://example.com
 twitter_username: __k1R4
 github_username:  k1R4
