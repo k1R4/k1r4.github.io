@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Text editor v2 [ASIS CTF Finals 2023]"
+title: "Text editor v2 [ASISCTFfinals23]"
 date: 2024-01-01 14:16:00 +0530
 categories: pwn heap
 ---
