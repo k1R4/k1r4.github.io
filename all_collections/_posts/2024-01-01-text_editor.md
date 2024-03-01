@@ -123,7 +123,7 @@ When `tab->curr_size + 1 = tab->max_size`, the last character of the buffer is a
 
 This can be abused to unset `prev_inuse` bit of a following chunk.
 
-## Exploit Stratergy
+## Exploit Strategy
 
 Here is the .bss layout for the binary which might make the exploit easier to understand:
 ```c
