@@ -271,7 +271,7 @@ Some critical objects are:
 	- free: `exit()`
 	- size: `0xa0`
 	- overwrite `uid`,`gid` members for changing privileges of process<br>
-```c
+```c <br>
 struct cred {
 	atomic_long_t usage;
 	kuid_t uid; /* real UID of the task */
@@ -320,7 +320,7 @@ struct cred {
 	- free: `close()`
 	- size: `0x300`
 	- overwrite `f_mode` to change file access permissions<br>
-```c
+```c <br>
 struct file {
 	union {
 		/* fput() uses task work when closing and freeing file (default). */
