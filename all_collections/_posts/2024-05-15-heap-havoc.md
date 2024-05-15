@@ -270,7 +270,7 @@ Some critical objects are:
 	- allocate: `fork()`,`clone()`
 	- free: `exit()`
 	- size: `0xa0`
-	- overwrite `uid`,`gid` members for changing privileges of process
+	- overwrite `uid`,`gid` members for changing privileges of process<br>
 ```c
 struct cred {
 	atomic_long_t usage;
@@ -319,7 +319,7 @@ struct cred {
 	- allocate: `open()`
 	- free: `close()`
 	- size: `0x300`
-	- overwrite `f_mode` to change file access permissions
+	- overwrite `f_mode` to change file access permissions<br>
 ```c
 struct file {
 	union {
