@@ -55,7 +55,7 @@ Each cpu (hardware thread) contains its own linked list of caches. This is the r
 - `slabs_free`: contains slabs that are completely empty (can be re-used or returned to page allocator)
 
 ```
-+-----------+                   +-------+                   +-----------+
+ +-----------+                   +-------+                   +-----------+
  | lastcache | ----------------> | cache | ----------------> | nextcache |
  +-----------+                   +-------+                   +-----------+
                                    / | \
@@ -158,7 +158,7 @@ Allocating pages of order 1, when there are only pages of order 3 available:
         |      |        .        |  |     +-------------------+
         |      +=================+  +---->|     2^3 block     |  
         |      |    MAX_ORDER    |        +-------------------+
-    v      +=================+
+        v      +=================+
 ```
 [Image source](https://www.kernel.org/doc/gorman/html/understand/understand-html030.png)
 
