@@ -23,7 +23,7 @@ Although `CONFIG_RANDOM_KMALLOC_CACHES` makes exploitation harder by reducing ch
 The module is a glorified and overcomplicated palindrome checker. Users can submit requests and operate on submitted requests through ioctl. There are two queues to keep track of requests, `incoming_queue` and `outgoing_queue`. The functionalites offered by the ioctl are:
  + For incoming queue,
     - QUEUE => add request to rear of incoming_queue
-    - SANITIZE => update request at front by translating \\\[A-Z\|a-z\\\] to \\\[A-Z\\\] & discarding other chars
+    - SANITIZE => update request at front by translating \[A-Z\|a-z\] to \[A-Z\] & discarding other chars
     - RESET => pop request at front, if sanitized, reset to raw and send it to rear, otherwise discard
     - PROCESS => pop request at front, check if palindrome and add to rear of outgoing_queue
  + For outgoing queue,

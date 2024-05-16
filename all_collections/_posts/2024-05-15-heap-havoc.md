@@ -55,6 +55,7 @@ Each cpu (hardware thread) contains its own linked list of caches. This is the r
 - `slabs_free`: contains slabs that are completely empty (can be re-used or returned to page allocator)
 
 ```
+
 +-----------+                   +-------+                   +-----------+
 | lastcache | ----------------> | cache | ----------------> | nextcache |
 +-----------+                   +-------+                   +-----------+
@@ -64,7 +65,7 @@ Each cpu (hardware thread) contains its own linked list of caches. This is the r
                 /                   |                     \
                /                    |                      \
     +------------+          +---------------+            +------------+
-	| slabs_full |          | slabs_partial |            | slabs_free |
+    | slabs_full |          | slabs_partial |            | slabs_free |
     +------------+          +---------------+            +------------+
           |                         |                           |
           |                         |                           |
@@ -158,7 +159,7 @@ Allocating pages of order 1, when there are only pages of order 3 available:
         |      |        .        |  |     +-------------------+
         |      +=================+  +---->|     2^3 block     |  
         |      |    MAX_ORDER    |        +-------------------+
-	    v      +=================+
+        v      +=================+
 ```
 [Image source](https://www.kernel.org/doc/gorman/html/understand/understand-html030.png)
 
@@ -207,12 +208,11 @@ You can use tools such as `pahole` and [kernel_obj_finder](https://github.com/ch
 #### Elastic objects
 These objects are called so, because they can be allocated in various general purpose caches. Although the introduction of `CONFIG_MEMCG_KMEM`, moved most of them to the `kmalloc-cg-x` caches. These objects are useful because of their dynamic size and user controlled content.
 
-Some elastic objects are:
-
 - `struct msg_msg`
 	- allocate: `msgsnd()`
 	- free: `msgrcv()`
 	- size: `0x40 - 0x1000`
+
 ```c
 struct msg_msg {
 	struct list_head m_list;
@@ -229,6 +229,7 @@ struct msg_msg {
 	- allocation occurs when msg datalen > 0xfc8
 	- the remaining bytes are put in a`struct msg_msgseg`
 	- size: `0x10-0x1000`
+
 ```c
 struct msg_msgseg {
 	struct msg_msgseg *next;
@@ -240,6 +241,7 @@ struct msg_msgseg {
 	- allocate: `setxattr()` on a `tmpfs` filesystem
 	- free: `removexattr()`
 	- size: `0x30 - ?`
+
 ```c
 struct simple_xattr {
 	struct rb_node rb_node;
@@ -253,6 +255,7 @@ struct simple_xattr {
 	- allocate: `add_key()` 
 	- free: `keyctl_revoke()` + `keyctl_unlink()`
 	- size: `0x20 - ?`
+
 ```c
 struct user_key_payload {
 	struct rcu_head rcu;
@@ -264,53 +267,52 @@ struct user_key_payload {
 #### Critical objects
 Being able to overwrite or control these objects usually leads to privilege escalation. These objects usually contain flags that control permissions. Since they are critical, they are usually allocated in dedicated caches with `SLAB_NOMERGE`, `SLAB_ACCOUNT` flags.
 
-Some critical objects are:
 - `struct cred`
 	- private cache: `cred_jar`
 	- allocate: `fork()`,`clone()`
 	- free: `exit()`
 	- size: `0xa0`
-	- overwrite `uid`,`gid` members for changing privileges of process<br>
-```c <br>
+	- overwrite `uid`,`gid` members for changing privileges of process
+
+```c
 struct cred {
-	atomic_long_t usage;
-	kuid_t uid; /* real UID of the task */
-	kgid_t gid; /* real GID of the task */
-	kuid_t suid; /* saved UID of the task */
-	kgid_t sgid; /* saved GID of the task */
-	kuid_t euid; /* effective UID of the task */
-	kgid_t egid; /* effective GID of the task */
-	kuid_t fsuid; /* UID for VFS ops */
-	kgid_t fsgid; /* GID for VFS ops */
-	unsigned securebits; /* SUID-less security management */
-	kernel_cap_t cap_inheritable; /* caps our children can inherit */
-	kernel_cap_t cap_permitted; /* caps we're permitted */
-	kernel_cap_t cap_effective; /* caps we can actually use */
-	kernel_cap_t cap_bset; /* capability bounding set */
-	kernel_cap_t cap_ambient; /* Ambient capability set */
+    atomic_long_t usage;
+    kuid_t uid; /* real UID of the task */
+    kgid_t gid; /* real GID of the task */
+    kuid_t suid; /* saved UID of the task */
+    kgid_t sgid; /* saved GID of the task */
+    kuid_t euid; /* effective UID of the task */
+    kgid_t egid; /* effective GID of the task */
+    kuid_t fsuid; /* UID for VFS ops */
+    kgid_t fsgid; /* GID for VFS ops */
+    unsigned securebits; /* SUID-less security management */
+    kernel_cap_t cap_inheritable; /* caps our children can inherit */
+    kernel_cap_t cap_permitted; /* caps we're permitted */
+    kernel_cap_t cap_effective; /* caps we can actually use */
+    kernel_cap_t cap_bset; /* capability bounding set */
+    kernel_cap_t cap_ambient; /* Ambient capability set */
 
-#ifdef CONFIG_KEYS
-	unsigned char jit_keyring; /* default keyring to attach requested
-* keys to */
-	struct key *session_keyring; /* keyring inherited over fork */
-	struct key *process_keyring; /* keyring private to this process */
-	struct key *thread_keyring; /* keyring private to this thread */
-	struct key *request_key_auth; /* assumed request_key authority */
-#endif
+    #ifdef CONFIG_KEYS
+    unsigned char jit_keyring; /* default keyring to attach requested */
+    struct key *session_keyring; /* keyring inherited over fork */
+    struct key *process_keyring; /* keyring private to this process */
+    struct key *thread_keyring; /* keyring private to this thread */
+    struct key *request_key_auth; /* assumed request_key authority */
+    #endif
 
-#ifdef CONFIG_SECURITY
-	void *security; /* LSM security */
-#endif
+    #ifdef CONFIG_SECURITY
+    void *security; /* LSM security */
+    #endif
 
-	struct user_struct *user; /* real user ID subscription */
-	struct user_namespace *user_ns; /* user_ns the caps and keyrings are relative to. */
-	struct ucounts *ucounts;
-	struct group_info *group_info; /* supplementary groups for euid/fsgid */
-/* RCU deletion */
-	union {
-		int non_rcu; /* Can we skip RCU deletion? */
-		struct rcu_head rcu; /* RCU deletion hook */
-	};
+    struct user_struct *user; /* real user ID subscription */
+    struct user_namespace *user_ns; /* user_ns the caps and keyrings are relative to. */
+    struct ucounts *ucounts;
+    struct group_info *group_info; /* supplementary groups for euid/fsgid */
+    /* RCU deletion */
+    union {
+        int non_rcu; /* Can we skip RCU deletion? */
+        struct rcu_head rcu; /* RCU deletion hook */
+    };
 } __randomize_layout;
 ```
 
@@ -319,60 +321,60 @@ struct cred {
 	- allocate: `open()`
 	- free: `close()`
 	- size: `0x300`
-	- overwrite `f_mode` to change file access permissions<br>
-```c <br>
+	- overwrite `f_mode` to change file access permissions
+
+```c
 struct file {
-	union {
-		/* fput() uses task work when closing and freeing file (default). */
-		struct callback_head f_task_work;
-		/* fput() must use workqueue (most kernel threads). */
-		struct llist_node f_llist;
-		unsigned int f_iocb_flags;
-	};
+    union {
+        /* fput() uses task work when closing and freeing file (default). */
+        struct callback_head f_task_work;
+        /* fput() must use workqueue (most kernel threads). */
+        struct llist_node f_llist;
+        unsigned int f_iocb_flags;
+    };
 
-	/*
-	* Protects f_ep, f_flags.
-	* Must not be taken from IRQ context.
-	*/
-	spinlock_t f_lock;
-	fmode_t f_mode;
-	atomic_long_t f_count;
-	struct mutex f_pos_lock;
-	loff_t f_pos;
-	unsigned int f_flags;
-	struct fown_struct f_owner;
-	const struct cred *f_cred;
-	struct file_ra_state f_ra;
-	struct path f_path;
-	struct inode *f_inode; /* cached value */
-	const struct file_operations *f_op;
-	u64 f_version;
+    /*
+    * Protects f_ep, f_flags.
+    * Must not be taken from IRQ context.
+    */
+    spinlock_t f_lock;
+    fmode_t f_mode;
+    atomic_long_t f_count;
+    struct mutex f_pos_lock;
+    loff_t f_pos;
+    unsigned int f_flags;
+    struct fown_struct f_owner;
+    const struct cred *f_cred;
+    struct file_ra_state f_ra;
+    struct path f_path;
+    struct inode *f_inode; /* cached value */
+    const struct file_operations *f_op;
+    u64 f_version;
 
-#ifdef CONFIG_SECURITY
-	void *f_security;
-#endif
+    #ifdef CONFIG_SECURITY
+    void *f_security;
+    #endif
 
-	/* needed for tty driver, and maybe others */
-	void *private_data;
+    /* needed for tty driver, and maybe others */
+    void *private_data;
 
-#ifdef CONFIG_EPOLL
-	/* Used by fs/eventpoll.c to link all the hooks to this file */
-	struct hlist_head *f_ep;
-#endif /* #ifdef CONFIG_EPOLL */
+    #ifdef CONFIG_EPOLL
+    /* Used by fs/eventpoll.c to link all the hooks to this file */
+    struct hlist_head *f_ep;
+    #endif /* #ifdef CONFIG_EPOLL */
 
-	struct address_space *f_mapping;
-	errseq_t f_wb_err;
-	errseq_t f_sb_err; /* for syncfs */
+    struct address_space *f_mapping;
+    errseq_t f_wb_err;
+    errseq_t f_sb_err; /* for syncfs */
 } __randomize_layout
 ```
 
 
-
-## Some cool challenges
+## Some simple challenges
 
 - [Pawnyable](https://pawnyable.cafe/linux-kernel/) (heap overflow, UAF)
 - [CISCN2017 - baby driver](https://github.com/ctf-wiki/ctf-challenges/tree/master/pwn/kernel/CISCN2017-babydriver) (UAF)
-- [CUCTF2019 - hotrot](https://github.com/CUCyber/cuctf-2020-challenges/tree/main/binary-exploitation/Hotrod/distributed) (userfaultfd race + UAF)
+- [CUCTF2019 - hotrod](https://github.com/CUCyber/cuctf-2020-challenges/tree/main/binary-exploitation/Hotrod/distributed) (userfaultfd race + UAF)
 - [bi0sCTF2022 - k32](https://github.com/teambi0s/bi0sCTF/tree/main/2022/Pwn/k32/handout) (heap overflow) (shameless plug :D)
 - [backdoorCTF2023 - empdb](https://github.com/sajjadium/ctf-archives/tree/main/ctfs/BackdoorCTF/2023/pwn/EmpDB) (userfaultfd race + freelist poisoning)
 
