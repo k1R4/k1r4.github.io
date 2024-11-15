@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Heap Havoc [LinuxKernel]"
+title:  "Hacking the Heap [LinuxKernel]"
 date:   2024-05-15 21:16:00 +0530
 categories: pwn kernel
 ---
@@ -290,4 +290,4 @@ Being able to overwrite or control these objects usually leads to privilege esca
 - [backdoorCTF2023 - empdb](https://github.com/sajjadium/ctf-archives/tree/main/ctfs/BackdoorCTF/2023/pwn/EmpDB) (userfaultfd race + freelist poisoning)
 
 ## The end
-I started writing this for my reference in the future, but it turned into a blog post. I will probably update this few times until I'm satisfied with it. I would like to take this oppurtunity to thank a few people, for motivating and helping me with learning Linux Kernel Exploitation: [Cyb0rG](https://twitter.com/_Cyb0rG), [3agl3](https://twitter.com/3agl31) & [kylebot](https://twitter.com/ky1ebot)
+I started writing this for my reference in the future, but it turned into a blog post. I will probably update this few times until I'm satisfied with it. I would like to thank a few people, for motivating and helping me with learning Linux Kernel Exploitation: [Cyb0rG](https://twitter.com/_Cyb0rG), [3agl3](https://twitter.com/3agl31) & [kylebot](https://twitter.com/ky1ebot)

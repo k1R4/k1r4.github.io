@@ -2,7 +2,7 @@
 layout: post
 title:  "palindromatic [bi0sCTF24]"
 date:   2024-02-26 18:58:23 +0530
-categories: pwn kernel
+categories: pwn kernel author
 ---
 
 ## Challenge Description
